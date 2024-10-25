@@ -1,13 +1,17 @@
 from torch import nn
 from torch.nn import Sequential
 
+from src.transforms import MistralTokenizer
+
 
 class BaselineModel(nn.Module):
     """
     Simple MLP
     """
 
-    def __init__(self, n_feats, n_class, fc_hidden=512):
+    def __init__(
+        self, embed_dim=1024, fc_hidden=2048, tokenizer=MistralTokenizer(), **kwargs
+    ):
         """
         Args:
             n_feats (int): number of input features.
@@ -16,16 +20,20 @@ class BaselineModel(nn.Module):
         """
         super().__init__()
 
+        self.tokenizer = tokenizer
+        vocab_len = len(tokenizer)
+
         self.net = Sequential(
             # people say it can approximate any function...
-            nn.Linear(in_features=n_feats, out_features=fc_hidden),
+            nn.Linear(in_features=embed_dim, out_features=fc_hidden),
             nn.ReLU(),
             nn.Linear(in_features=fc_hidden, out_features=fc_hidden),
             nn.ReLU(),
-            nn.Linear(in_features=fc_hidden, out_features=n_class),
+            nn.Linear(in_features=fc_hidden, out_features=vocab_len),
         )
+        self.embeds = nn.Embedding(vocab_len, embed_dim)
 
-    def forward(self, img, **batch):
+    def forward(self, text, **batch):
         """
         Model forward method.
 
@@ -34,7 +42,8 @@ class BaselineModel(nn.Module):
         Returns:
             output (dict): output dict containing logits.
         """
-        return {"logits": self.net(img.flatten(1))}
+        embeds = self.embeds(text)
+        return {"logits": self.net(embeds)}
 
     def __str__(self):
         """

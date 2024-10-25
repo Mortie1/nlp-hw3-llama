@@ -3,6 +3,7 @@ import logging
 import random
 from typing import List
 
+import safetensors
 import torch
 from torch.utils.data import Dataset
 
@@ -81,8 +82,7 @@ class BaseDataset(Dataset):
         Returns:
             text (str): text content.
         """
-        with open(path, "r") as f:
-            text = json.load(f)["tensor"]
+        text = safetensors.torch.load_file(path)["tensor"]
         return text
 
     def preprocess_data(self, instance_data):
@@ -143,10 +143,6 @@ class BaseDataset(Dataset):
         for entry in index:
             assert "path" in entry, (
                 "Each dataset item should include field 'path'" " - path to audio file."
-            )
-            assert "label" in entry, (
-                "Each dataset item should include field 'label'"
-                " - object ground-truth label."
             )
 
     @staticmethod

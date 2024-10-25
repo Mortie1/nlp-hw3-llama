@@ -1,7 +1,9 @@
+import os
 import warnings
 
 import hydra
 import torch
+from huggingface_hub import login
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
@@ -10,6 +12,9 @@ from src.trainer import Trainer
 from src.utils.init_utils import set_random_seed, setup_saving_and_logging
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+login(token="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")
+os.environ["HYDRA_FULL_ERROR"] = "1"
 
 
 @hydra.main(version_base=None, config_path="src/configs", config_name="baseline")

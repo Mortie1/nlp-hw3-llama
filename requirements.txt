@@ -9,6 +9,9 @@ wandb
 comet_ml
 hydra-core
 datasets
+transformers
+safetensors
+huggingface_hub
 
 black
 isort

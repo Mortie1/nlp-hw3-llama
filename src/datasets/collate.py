@@ -1,4 +1,5 @@
 import torch
+from torch.nn.utils.rnn import pad_sequence
 
 
 def collate_fn(dataset_items: list[dict]):
@@ -17,9 +18,8 @@ def collate_fn(dataset_items: list[dict]):
     result_batch = {}
 
     # example of collate_fn
-    result_batch["img"] = torch.cat(
-        [elem["img"].unsqueeze(0) for elem in dataset_items], dim=0
+    result_batch["text"] = pad_sequence(
+        [item["text"] for item in dataset_items], batch_first=True
     )
-    result_batch["labels"] = torch.tensor([elem["labels"] for elem in dataset_items])
 
     return result_batch
