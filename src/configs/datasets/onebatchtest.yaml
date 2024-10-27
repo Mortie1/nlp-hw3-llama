@@ -1,10 +1,10 @@
 train:
     _target_: src.datasets.OpenWebText
     split: "train"
-    limit: 5
+    limit: 100
     instance_transforms: ${transforms.instance_transforms.inference}
 test:
     _target_: src.datasets.OpenWebText
     split: "train"
-    limit: 5
+    limit: 100
     instance_transforms: ${transforms.instance_transforms.inference}

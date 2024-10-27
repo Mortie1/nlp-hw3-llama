@@ -1,16 +1,23 @@
 from torch import nn
 from torch.nn import Sequential
 
+from src.model.llama_layers import LLaMADecoderLayer
 from src.transforms import MistralTokenizer
 
 
-class BaselineModel(nn.Module):
+class LLaMa(nn.Module):
     """
     Simple MLP
     """
 
     def __init__(
-        self, embed_dim=512, fc_hidden=1024, tokenizer=MistralTokenizer(), **kwargs
+        self,
+        embed_dim=512,
+        n_layers=2,
+        n_heads=8,
+        dropout=0.0,
+        tokenizer=MistralTokenizer(),
+        **kwargs,
     ):
         """
         Args:
@@ -22,18 +29,17 @@ class BaselineModel(nn.Module):
 
         self.tokenizer = tokenizer
         vocab_len = len(tokenizer)
-
-        self.net = Sequential(
-            # people say it can approximate any function...
-            nn.Linear(in_features=embed_dim, out_features=fc_hidden),
-            nn.ReLU(),
-            nn.Linear(in_features=fc_hidden, out_features=fc_hidden),
-            nn.ReLU(),
-            nn.Linear(in_features=fc_hidden, out_features=vocab_len),
-        )
         self.embed = nn.Embedding(vocab_len, embed_dim)
 
-    def forward(self, tokenized, **batch):
+        self.decoders = nn.ModuleList(
+            [
+                LLaMADecoderLayer(emb_size=embed_dim, n_heads=n_heads, dropout=dropout)
+                for _ in range(n_layers)
+            ]
+        )
+        self.head = nn.Linear(embed_dim, vocab_len, bias=False)
+
+    def forward(self, src, attn_mask, pad_mask, **batch):
         """
         Model forward method.
 
@@ -42,11 +48,13 @@ class BaselineModel(nn.Module):
         Returns:
             output (dict): output dict containing logits.
         """
-        print(type(tokenized))
-        print(tokenized)
-        print(tokenized.shape)
-        embeds = self.embed(tokenized)  # embeds shape: [batch_size, seq_len, embed_dim]
-        logits = self.net(embeds)  # logits shape: [batch_size, seq_len, vocab_len]
+        x = self.embed(src)  # embeds shape: [batch_size, seq_len, embed_dim]
+        for decoder in self.decoders:
+            x = decoder(x, attn_mask, pad_mask)
+            if x.isnan().any():
+                raise Exception("nan in decoders!!!")
+
+        logits = self.head(x)
         return {
             "logits": logits.permute(0, 2, 1)
         }  # logits shape: [batch_size, vocab_len, seq_len]

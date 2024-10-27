@@ -1,5 +1,5 @@
-torch==2.5.0
-torchvision==0.20.0
+torch==2.4.0
+torchvision==0.19.0
 torchmetrics
 numpy==1.26.3
 tqdm
@@ -12,6 +12,7 @@ datasets
 transformers
 safetensors
 huggingface_hub
+xformers
 
 black
 isort

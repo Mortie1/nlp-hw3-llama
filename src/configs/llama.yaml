@@ -1,5 +1,5 @@
 defaults:
-    - model: baseline
+    - model: llama
     - writer: wandb
     - metrics: accuracy
     - datasets: onebatchtest
@@ -7,8 +7,9 @@ defaults:
     - transforms: main
     - _self_
 optimizer:
-    _target_: torch.optim.Adam
+    _target_: torch.optim.AdamW
     lr: 3e-4
+    betas: [0.9, 0.95]
 lr_scheduler:
     _target_: torch.optim.lr_scheduler.StepLR
     gamma: 0.9
@@ -19,7 +20,7 @@ trainer:
     log_step: 10
     n_epochs: 100
     epoch_len: 500
-    device_tensors: ["tokenized"] # which tensors should be on device (ex. GPU)
+    device_tensors: ["src", "tgt", "attn_mask", "pad_mask"] # which tensors should be on device (ex. GPU)
     resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
     device: auto # device name or "auto"
     override: True # if True, will override the previous run with the same name

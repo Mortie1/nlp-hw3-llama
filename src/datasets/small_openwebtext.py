@@ -1,3 +1,4 @@
+import json
 import os.path
 import shutil
 
@@ -20,14 +21,13 @@ class OpenWebText(BaseDataset):
     https://yann.lecun.com/exdb/mnist/
     """
 
-    def __init__(self, split="train", tokenizer=MistralTokenizer(), *args, **kwargs):
+    def __init__(self, split="train", *args, **kwargs):
         """
         Args:
             split (str): partition name
         """
         index_path = ROOT_PATH / "data" / "openwebtext" / split / "index.json"
 
-        self.tokenizer = tokenizer
         # each nested dataset class must have an index field that
         # contains list of dicts. Each dict contains information about
         # the object, including label, path, etc.
@@ -73,13 +73,12 @@ class OpenWebText(BaseDataset):
         # but we use wrapper
         for i in tqdm(range(len(openwebtext_data))):
             # create dataset
-            save_path = data_path / f"{i:06}.safetensors"
+            save_path = data_path / f"{i:07}.txt"
             if not os.path.isfile(save_path):
                 text = openwebtext_data[i]["text"]
-
-                save_dict = {"tensor": self.tokenizer(text)["input_ids"]}
-
-                safetensors.torch.save_file(save_dict, save_path)
+                save_dict = {"text": text}
+                with open(save_path, "w", encoding="utf-8") as f:
+                    json.dump(save_dict, f, ensure_ascii=False)
 
             # parse dataset metadata and append it to index
             index.append({"path": str(save_path)})

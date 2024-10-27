@@ -82,7 +82,8 @@ class BaseDataset(Dataset):
         Returns:
             text (str): text content.
         """
-        text = safetensors.torch.load_file(path)["tensor"]
+        with open(path, "r", encoding="utf-8") as f:
+            text = json.load(f)["text"]
         return text
 
     def preprocess_data(self, instance_data):
