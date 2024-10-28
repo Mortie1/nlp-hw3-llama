@@ -1,6 +1,7 @@
 from abc import abstractmethod
 
 import torch
+from accelerate import Accelerator
 from numpy import inf
 from torch.nn.utils import clip_grad_norm_
 from tqdm.auto import tqdm
@@ -22,6 +23,7 @@ class BaseTrainer:
         metrics,
         optimizer,
         lr_scheduler,
+        accelerator: Accelerator,
         config,
         device,
         dataloaders,
@@ -66,10 +68,17 @@ class BaseTrainer:
         self.logger = logger
         self.log_step = config.trainer.get("log_step", 50)
 
-        self.model = model
+        # prepare accelerator and define model
+        self.accelerator = accelerator
+
+        (
+            self.model,
+            self.optimizer,
+            self.train_dataloader,
+            self.lr_scheduler,
+        ) = accelerator.prepare(model, optimizer, dataloaders["train"], lr_scheduler)
+
         self.criterion = criterion
-        self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
         self.batch_transforms = batch_transforms
 
         # define dataloaders
@@ -205,18 +214,19 @@ class BaseTrainer:
         for batch_idx, batch in enumerate(
             tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
         ):
-            try:
-                batch = self.process_batch(
-                    batch,
-                    metrics=self.train_metrics,
-                )
-            except torch.cuda.OutOfMemoryError as e:
-                if self.skip_oom:
-                    self.logger.warning("OOM on batch. Skipping batch.")
-                    torch.cuda.empty_cache()  # free some memory
-                    continue
-                else:
-                    raise e
+            with self.accelerator.accumulate(self.model):
+                try:
+                    batch = self.process_batch(
+                        batch,
+                        metrics=self.train_metrics,
+                    )
+                except torch.cuda.OutOfMemoryError as e:
+                    if self.skip_oom:
+                        self.logger.warning("OOM on batch. Skipping batch.")
+                        torch.cuda.empty_cache()  # free some memory
+                        continue
+                    else:
+                        raise e
 
             self.train_metrics.update("grad_norm", self._get_grad_norm())
 

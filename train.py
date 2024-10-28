@@ -3,6 +3,8 @@ import warnings
 
 import hydra
 import torch
+from accelerate import Accelerator
+from dotenv import load_dotenv
 from huggingface_hub import login
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
@@ -13,7 +15,9 @@ from src.utils.init_utils import set_random_seed, setup_saving_and_logging
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-login(token="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")
+load_dotenv()
+
+login(token=os.getenv("HF_TOKEN"))
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 
@@ -50,10 +54,11 @@ def main(config):
     loss_function = instantiate(config.loss_function).to(device)
     metrics = instantiate(config.metrics)
 
-    # build optimizer, learning rate scheduler
+    # build optimizer, learning rate scheduler, accelerator
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = instantiate(config.optimizer, params=trainable_params)
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
+    accelerator = instantiate(config.accelerator, device_placement=False)
 
     # epoch_len = number of iterations for iteration-based training
     # epoch_len = None or len(dataloader) for epoch-based training
@@ -65,6 +70,7 @@ def main(config):
         metrics=metrics,
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
+        accelerator=accelerator,
         config=config,
         device=device,
         dataloaders=dataloaders,

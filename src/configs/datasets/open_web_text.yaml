@@ -1,0 +1,4 @@
+train:
+    _target_: src.datasets.OpenWebText
+    split: "train"
+    instance_transforms: ${transforms.instance_transforms.inference}

@@ -1,5 +1,6 @@
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
+from src.transforms.mistral_tokenizer import MistralTokenizer
 
 
 class Trainer(BaseTrainer):
@@ -41,11 +42,14 @@ class Trainer(BaseTrainer):
         batch.update(all_losses)
 
         if self.is_train:
-            batch["loss"].backward()  # sum of all losses is always called loss
-            self._clip_grad_norm()
-            self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+            with self.accelerator.autocast():
+                self.accelerator.backward(
+                    batch["loss"]
+                )  # sum of all losses is always called loss
+                self._clip_grad_norm()
+                self.optimizer.step()
+                if self.lr_scheduler is not None:
+                    self.lr_scheduler.step()
 
         # update metrics for each loss (in case of multiple losses)
         for loss_name in self.config.writer.loss_names:
@@ -53,6 +57,7 @@ class Trainer(BaseTrainer):
 
         for met in metric_funcs:
             metrics.update(met.name, met(**batch))
+
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):
@@ -77,3 +82,10 @@ class Trainer(BaseTrainer):
         # else:
         #     img = batch["img"][0].detach().cpu().numpy().transpose(1, 2, 0)
         #     self.writer.add_image("image", img)
+
+        pred = batch["logits"][-1, :, :].transpose(0, 1).argmax(dim=-1)
+        tgt = batch["tgt"][-1, :]
+        print("compare tgt and pred")
+        print(
+            f"PRED: {MistralTokenizer().decode(pred)}\nTARGET: {MistralTokenizer().decode(tgt)}"
+        )

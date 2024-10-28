@@ -19,8 +19,8 @@ class CrossEntropyLoss(nn.Module):
         Loss function calculation logic.
 
         Args:
-            logits (Tensor): model output predictions.
-            labels (Tensor): ground-truth labels.
+            logits (Tensor): model output predictions.  shape: (batch_size, vocab_len, seq_len)
+            labels (Tensor): ground-truth labels.       shape: (batch_size, seq_len)
         Returns:
             losses (dict): dict containing calculated loss functions.
         """

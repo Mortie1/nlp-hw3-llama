@@ -13,6 +13,8 @@ transformers
 safetensors
 huggingface_hub
 xformers
+python-dotenv
+accelerate
 
 black
 isort

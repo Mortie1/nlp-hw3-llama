@@ -1,8 +1,8 @@
 defaults:
     - model: llama
     - writer: wandb
-    - metrics: accuracy
-    - datasets: onebatchtest
+    - metrics: no_metrics
+    - datasets: open_web_text
     - dataloader: main
     - transforms: main
     - _self_
@@ -16,10 +16,14 @@ lr_scheduler:
     step_size: ${trainer.epoch_len}
 loss_function:
     _target_: src.loss.CrossEntropyLoss
+accelerator:
+    _target_: accelerate.Accelerator
+    mixed_precision: fp16
+    gradient_accumulation_steps: 16
 trainer:
-    log_step: 10
-    n_epochs: 100
-    epoch_len: 500
+    log_step: 20
+    n_epochs: 50
+    epoch_len: 100
     device_tensors: ["src", "tgt", "attn_mask", "pad_mask"] # which tensors should be on device (ex. GPU)
     resume_from: null # null or path to the checkpoint dir with *.pth and config.yaml
     device: auto # device name or "auto"

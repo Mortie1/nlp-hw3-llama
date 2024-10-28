@@ -3,7 +3,7 @@ from transformers import AutoTokenizer
 
 
 class MistralTokenizer(nn.Module):
-    def __init__(self, max_length=128, *args, **kwargs):
+    def __init__(self, max_length=256, *args, **kwargs):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(
             "mistralai/Mistral-7B-v0.1", *args, **kwargs
@@ -28,6 +28,12 @@ class MistralTokenizer(nn.Module):
             padding=True,
             padding_side="right",
         )
+
+    def convert_ids_to_tokens(self, ids):
+        return self.tokenizer.convert_ids_to_tokens(ids)
+
+    def decode(self, x):
+        return self.tokenizer.batch_decode(x)
 
     def __len__(self):
         return len(self.tokenizer)

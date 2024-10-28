@@ -1,5 +1,6 @@
 from torch import nn
 from torch.nn import Sequential
+from torch.utils.checkpoint import checkpoint, checkpoint_sequential
 
 from src.model.llama_layers import LLaMADecoderLayer
 from src.transforms import MistralTokenizer
@@ -12,10 +13,11 @@ class LLaMa(nn.Module):
 
     def __init__(
         self,
-        embed_dim=512,
-        n_layers=2,
-        n_heads=8,
-        dropout=0.0,
+        embed_dim: int = 512,
+        n_layers: int = 2,
+        n_heads: int = 8,
+        dropout: int = 0.0,
+        n_chckpnt_segments: int = 1,
         tokenizer=MistralTokenizer(),
         **kwargs,
     ):
@@ -31,13 +33,14 @@ class LLaMa(nn.Module):
         vocab_len = len(tokenizer)
         self.embed = nn.Embedding(vocab_len, embed_dim)
 
-        self.decoders = nn.ModuleList(
-            [
+        self.decoders = nn.Sequential(
+            *[
                 LLaMADecoderLayer(emb_size=embed_dim, n_heads=n_heads, dropout=dropout)
                 for _ in range(n_layers)
             ]
         )
         self.head = nn.Linear(embed_dim, vocab_len, bias=False)
+        self.n_segments = n_chckpnt_segments
 
     def forward(self, src, attn_mask, pad_mask, **batch):
         """
@@ -49,10 +52,9 @@ class LLaMa(nn.Module):
             output (dict): output dict containing logits.
         """
         x = self.embed(src)  # embeds shape: [batch_size, seq_len, embed_dim]
-        for decoder in self.decoders:
-            x = decoder(x, attn_mask, pad_mask)
-            if x.isnan().any():
-                raise Exception("nan in decoders!!!")
+        x, _, _ = checkpoint_sequential(
+            self.decoders, self.n_segments, input=(x, attn_mask, pad_mask)
+        )
 
         logits = self.head(x)
         return {
