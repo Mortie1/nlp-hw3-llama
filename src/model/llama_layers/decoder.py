@@ -26,7 +26,7 @@ class LLaMADecoderLayer(nn.Module, PyTorchModelHubMixin):
             bias=(False, False, False, False),
             use_rotary_embeddings=True,
         )
-        self.rmsnorm = nn.RMSNorm(emb_size)
+        self.rmsnorm = nn.RMSNorm(emb_size, eps=1e-5)
         self.swiglu = SwiGLU(emb_size)
         self.n_heads = n_heads
 

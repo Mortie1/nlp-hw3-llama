@@ -40,6 +40,7 @@ class LLaMa(nn.Module):
             ]
         )
         self.head = nn.Linear(embed_dim, vocab_len, bias=False)
+        self.rmsnorm = nn.RMSNorm(embed_dim, eps=1e-5)
         self.n_segments = n_chckpnt_segments
 
     def forward(self, src, attn_mask, pad_mask, **batch):
@@ -52,11 +53,13 @@ class LLaMa(nn.Module):
             output (dict): output dict containing logits.
         """
         x = self.embed(src)  # embeds shape: [batch_size, seq_len, embed_dim]
-        x, _, _ = checkpoint_sequential(
-            self.decoders, self.n_segments, input=(x, attn_mask, pad_mask)
-        )
+        # x, _, _ = checkpoint_sequential(
+        #     self.decoders, self.n_segments, input=(x, attn_mask, pad_mask)
+        # )
+        for decoder in self.decoders:
+            x, _, _ = decoder((x, attn_mask, pad_mask))
 
-        logits = self.head(x)
+        logits = self.head(self.rmsnorm(x))
         return {
             "logits": logits.permute(0, 2, 1)
         }  # logits shape: [batch_size, vocab_len, seq_len]

@@ -3,7 +3,6 @@ import warnings
 
 import hydra
 import torch
-from accelerate import Accelerator
 from dotenv import load_dotenv
 from huggingface_hub import login
 from hydra.utils import instantiate
@@ -57,7 +56,12 @@ def main(config):
     # build optimizer, learning rate scheduler, accelerator
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = instantiate(config.optimizer, params=trainable_params)
-    lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
+    warmup = instantiate(config.warmup, optimizer=optimizer)
+    main_lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
+    lr_scheduler = torch.optim.lr_scheduler.ChainedScheduler(
+        schedulers=[warmup, main_lr_scheduler],
+        optimizer=optimizer,
+    )
     accelerator = instantiate(config.accelerator, device_placement=False)
 
     # epoch_len = number of iterations for iteration-based training
