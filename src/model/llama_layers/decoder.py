@@ -4,6 +4,8 @@ from torch import Tensor, nn
 from xformers.components import MultiHeadDispatch
 from xformers.components.attention import ScaledDotProduct
 
+from src.model.llama_layers.attention import MultiHeadAttention
+from src.model.llama_layers.rmsnorm import RMSNorm
 from src.model.llama_layers.swiglu import SwiGLU
 
 
@@ -46,3 +48,23 @@ class LLaMADecoderLayer(nn.Module, PyTorchModelHubMixin):
 
         x = self.multihead_attn(self.rmsnorm1(x), att_mask=mask) + x
         return self.swiglu(self.rmsnorm2(x)) + x, mask
+
+
+class CustomAttentionLLaMaDecoder(LLaMADecoderLayer):
+    def __init__(
+        self,
+        emb_size: int,
+        n_heads: int,
+        dropout: float,
+    ) -> None:
+        super().__init__(emb_size, n_heads, dropout)
+        self.multihead_attn = MultiHeadAttention(
+            emb_size=emb_size,
+            n_heads=n_heads,
+            bias_qkv=False,
+            bias_out=False,
+            use_rotary_embeddings=True,
+            dropout=dropout,
+        )
+        self.rmsnorm1 = RMSNorm(emb_size, eps=1e-9)
+        self.rmsnorm2 = RMSNorm(emb_size, eps=1e-9)
