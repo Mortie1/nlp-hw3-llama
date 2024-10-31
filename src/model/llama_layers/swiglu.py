@@ -10,9 +10,9 @@ class SwiGLU(nn.Module):
         self.linear_out = nn.Linear((8 * dim) // 3, dim, bias=False)
         self.silu = nn.SiLU(inplace=True)
 
-        nn.init.xavier_uniform_(self.linear_inp1.weight)
-        nn.init.xavier_uniform_(self.linear_inp2.weight)
-        nn.init.xavier_uniform_(self.linear_out.weight)
+        # nn.init.xavier_uniform_(self.linear_inp1.weight)
+        # nn.init.xavier_uniform_(self.linear_inp2.weight)
+        # nn.init.xavier_uniform_(self.linear_out.weight)
 
     def forward(self, x: Tensor):
         """

@@ -1,0 +1,42 @@
+defaults:
+    - model: llama4_8_loss
+    - writer: wandb
+    - metrics: no_metrics
+    - datasets: open_web_text
+    - dataloader: llama_4_8_loss_dataloader
+    - transforms: main
+    - _self_
+optimizer:
+    _target_: torch.optim.AdamW
+    lr: 1e-4
+    betas: [0.9, 0.95]
+    weight_decay: 0.0
+warmup:
+    _target_: torch.optim.lr_scheduler.LinearLR
+    start_factor: 0.1
+    end_factor: 1.0
+    total_iters: 300
+lr_scheduler:
+    _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+    T_max: 200000
+    eta_min: 1e-5
+loss_function:
+    _target_: src.loss.CrossEntropyLoss
+accelerator:
+    _target_: accelerate.Accelerator
+    mixed_precision: bf16
+    gradient_accumulation_steps: 1
+trainer:
+    log_step: 100
+    n_epochs: 2
+    device_tensors: ["src", "tgt", "attn_mask", "pad_mask"] # which tensors should be on device (ex. GPU)
+    # resume_from: ..\lr=1e-4, add max_grad_norm\checkpoint-epoch1.pth # null or path to the checkpoint dir with *.pth and config.yaml
+    # from_pretrained: ..\lr=1e-4, add max_grad_norm\checkpoint-epoch1.pth
+    device: auto # device name or "auto"
+    override: False # if True, will override the previous run with the same name
+    max_grad_norm: 1.0
+    monitor: "min train_CrossEntropy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
+    save_period: 10000 # checkpoint each save_period iters in addition to the best iter
+    early_stop: ${trainer.n_epochs} # epochs for early stopping
+    save_dir: "saved"
+    seed: 1

@@ -82,8 +82,12 @@ class BaseDataset(Dataset):
         Returns:
             text (str): text content.
         """
-        with open(path, "r", encoding="utf-8") as f:
-            text = json.load(f)["text"]
+        try:
+            with open(path, "rt", encoding="utf-8") as f:
+                text = json.load(f)["text"]
+        except OSError:  # idk why but sometimes files disappear from folder D:
+            text = ""
+            print("File disappeared! Could not load text from path: ", path)
         return text
 
     def preprocess_data(self, instance_data):
@@ -143,7 +147,7 @@ class BaseDataset(Dataset):
         """
         for entry in index:
             assert "path" in entry, (
-                "Each dataset item should include field 'path'" " - path to audio file."
+                "Each dataset item should include field 'path'" " - path to text file."
             )
 
     @staticmethod

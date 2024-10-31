@@ -3,8 +3,6 @@ import warnings
 
 import hydra
 import torch
-from dotenv import load_dotenv
-from huggingface_hub import login
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
@@ -14,9 +12,6 @@ from src.utils.init_utils import set_random_seed, setup_saving_and_logging
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-load_dotenv()
-
-login(token=os.getenv("HF_TOKEN"))
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 

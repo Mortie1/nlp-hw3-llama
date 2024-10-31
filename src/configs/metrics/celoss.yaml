@@ -1,0 +1,6 @@
+train:
+    - _target_: src.metrics.CrossEntropy
+      name: "train_CrossEntropy"
+inference: # metrics that are calculated during inference (eval)
+    - _target_: src.metrics.CrossEntropy
+      name: "CrossEntropy"

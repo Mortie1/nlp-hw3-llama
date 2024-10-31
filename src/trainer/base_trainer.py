@@ -209,7 +209,10 @@ class BaseTrainer:
         self.is_train = True
         self.model.train()
         self.train_metrics.reset()
-        self.writer.set_step((epoch - 1) * self.epoch_len)
+        self.writer.set_step(
+            (epoch - 1)
+            * (self.epoch_len // self.accelerator.gradient_accumulation_steps)
+        )
         self.writer.add_scalar("epoch", epoch)
         for batch_idx, batch in enumerate(
             tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
@@ -231,8 +234,15 @@ class BaseTrainer:
             self.train_metrics.update("grad_norm", self._get_grad_norm())
 
             # log current results
-            if batch_idx % self.log_step == 0:
-                self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
+            if (
+                (batch_idx // self.accelerator.gradient_accumulation_steps)
+                % self.log_step
+                == 0
+                and batch_idx % self.accelerator.gradient_accumulation_steps == 0
+            ):
+                self.writer.set_step(
+                    batch_idx // self.accelerator.gradient_accumulation_steps
+                )
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
                         epoch, self._progress(batch_idx), batch["loss"].item()

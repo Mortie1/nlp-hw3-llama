@@ -74,11 +74,11 @@ class OpenWebText(BaseDataset):
         for i in tqdm(range(len(openwebtext_data))):
             # create dataset
             save_path = data_path / f"{i:07}.txt"
-            if not os.path.isfile(save_path):
-                text = openwebtext_data[i]["text"]
-                save_dict = {"text": text}
-                with open(save_path, "w", encoding="utf-8") as f:
-                    json.dump(save_dict, f, ensure_ascii=False)
+
+            text = openwebtext_data[i]["text"]
+            save_dict = {"text": text}
+            with open(save_path, "w", encoding="utf-8") as f:
+                json.dump(save_dict, f, ensure_ascii=False)
 
             # parse dataset metadata and append it to index
             index.append({"path": str(save_path)})

@@ -86,7 +86,6 @@ class Trainer(BaseTrainer):
 
         pred = batch["logits"][-1, :, :].transpose(0, 1).argmax(dim=-1)
         tgt = batch["tgt"][-1, :]
-        print("compare tgt and pred")
         print(
-            f"PRED: {MistralTokenizer().decode(pred)}\nTARGET: {MistralTokenizer().decode(tgt)}"
+            f"PRED: {MistralTokenizer().decode(pred)[:20]}\nTARGET: {MistralTokenizer().decode(tgt)[:20]}"
         )

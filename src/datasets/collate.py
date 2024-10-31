@@ -28,12 +28,15 @@ def collate_fn(dataset_items: list[dict]):
     result_batch["src"] = tokenizer_output[:, :-1]
     result_batch["tgt"] = tokenizer_output[:, 1:]
 
-    attention_mask = (
+    attention_mask = torch.where(
         torch.triu(
             torch.ones((result_batch["src"].shape[1], result_batch["src"].shape[1]))
         )
-        == 1
+        == 1,
+        0,
+        -torch.inf,
     ).transpose(0, 1)
+
     result_batch["attn_mask"] = attention_mask
 
     padding_mask = torch.where(

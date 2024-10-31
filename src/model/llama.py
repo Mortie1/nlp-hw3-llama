@@ -1,16 +1,13 @@
 from torch import nn
 from torch.nn import Sequential
 from torch.utils.checkpoint import checkpoint, checkpoint_sequential
+from xformers.components.attention.utils import maybe_merge_masks
 
 from src.model.llama_layers import LLaMADecoderLayer
 from src.transforms import MistralTokenizer
 
 
 class LLaMa(nn.Module):
-    """
-    Simple MLP
-    """
-
     def __init__(
         self,
         embed_dim: int = 512,
@@ -31,16 +28,24 @@ class LLaMa(nn.Module):
 
         self.tokenizer = tokenizer
         vocab_len = len(tokenizer)
-        self.embed = nn.Embedding(vocab_len, embed_dim)
+        self.embed = nn.Embedding(
+            vocab_len, embed_dim, padding_idx=self.tokenizer.pad_token_id
+        )
+        self.n_heads = n_heads
 
         self.decoders = nn.Sequential(
             *[
-                LLaMADecoderLayer(emb_size=embed_dim, n_heads=n_heads, dropout=dropout)
+                LLaMADecoderLayer(
+                    emb_size=embed_dim, n_heads=self.n_heads, dropout=dropout
+                )
                 for _ in range(n_layers)
             ]
         )
         self.head = nn.Linear(embed_dim, vocab_len, bias=False)
-        self.rmsnorm = nn.RMSNorm(embed_dim, eps=1e-5)
+
+        # nn.init.xavier_uniform_(self.head.weight)
+        # nn.init.xavier_uniform_(self.embed.weight)
+        self.rmsnorm = nn.RMSNorm(embed_dim, eps=1e-9)
         self.n_segments = n_chckpnt_segments
 
     def forward(self, src, attn_mask, pad_mask, **batch):
@@ -53,11 +58,12 @@ class LLaMa(nn.Module):
             output (dict): output dict containing logits.
         """
         x = self.embed(src)  # embeds shape: [batch_size, seq_len, embed_dim]
-        # x, _, _ = checkpoint_sequential(
-        #     self.decoders, self.n_segments, input=(x, attn_mask, pad_mask)
-        # )
-        for decoder in self.decoders:
-            x, _, _ = decoder((x, attn_mask, pad_mask))
+        mask = maybe_merge_masks(
+            attn_mask, pad_mask, x.shape[0], x.shape[1], self.n_heads
+        )
+        x, _ = checkpoint_sequential(self.decoders, self.n_segments, input=(x, mask))
+        # for decoder in self.decoders:
+        #     x, _, _ = decoder((x, attn_mask, pad_mask))
 
         logits = self.head(self.rmsnorm(x))
         return {
