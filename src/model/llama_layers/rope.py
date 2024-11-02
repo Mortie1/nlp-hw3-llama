@@ -12,6 +12,8 @@ class RotaryEmbedding(nn.Module):
     ):
         super().__init__()
 
+        self.dim_per_head = dim_per_head
+        self.max_seq_len = max_seq_len
         freqs = 1.0 / (
             10000
             ** (
@@ -24,6 +26,7 @@ class RotaryEmbedding(nn.Module):
             freqs
             * torch.arange(max_seq_len, device=device, dtype=dtype).float()[:, None]
         )
+
         r1 = r.cos()
         self.register_buffer("r1", r1)
 
@@ -69,3 +72,6 @@ class RotaryEmbedding(nn.Module):
             * self.mask2
             * self.r2[None, : x.shape[1], None, :]
         ).transpose(1, 2)
+
+    def extra_repr(self) -> str:
+        return f"dim_per_head={self.dim_per_head}, max_seq_len={self.max_seq_len}"

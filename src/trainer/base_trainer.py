@@ -105,6 +105,7 @@ class BaseTrainer:
         self.save_period = (
             self.cfg_trainer.save_period
         )  # checkpoint each save_period epochs
+        self.iter_save_period = self.cfg_trainer.iter_save_period
         self.monitor = self.cfg_trainer.get(
             "monitor", "off"
         )  # format: "mnt_mode mnt_metric"
@@ -233,6 +234,10 @@ class BaseTrainer:
 
             self.train_metrics.update("grad_norm", self._get_grad_norm())
 
+            step = batch_idx // self.accelerator.gradient_accumulation_steps + (
+                epoch - 1
+            ) * (self.epoch_len // self.accelerator.gradient_accumulation_steps)
+
             # log current results
             if (
                 (batch_idx // self.accelerator.gradient_accumulation_steps)
@@ -240,9 +245,7 @@ class BaseTrainer:
                 == 0
                 and batch_idx % self.accelerator.gradient_accumulation_steps == 0
             ):
-                self.writer.set_step(
-                    batch_idx // self.accelerator.gradient_accumulation_steps
-                )
+                self.writer.set_step(step)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
                         epoch, self._progress(batch_idx), batch["loss"].item()
@@ -260,6 +263,13 @@ class BaseTrainer:
             if batch_idx + 1 >= self.epoch_len:
                 break
 
+            if step % self.iter_save_period == 0 and batch_idx != 0:
+                self._save_checkpoint(
+                    step,
+                    save_best=False,
+                    only_best=False,
+                    iter=True,
+                )
         logs = last_train_metrics
 
         # Run val/test
@@ -471,7 +481,7 @@ class BaseTrainer:
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
 
-    def _save_checkpoint(self, epoch, save_best=False, only_best=False):
+    def _save_checkpoint(self, epoch, save_best=False, only_best=False, iter=False):
         """
         Save the checkpoints.
 
@@ -492,7 +502,12 @@ class BaseTrainer:
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
-        filename = str(self.checkpoint_dir / f"checkpoint-epoch{epoch}.pth")
+        s = (
+            f"checkpoint-epoch{epoch}.pth"
+            if not iter
+            else f"checkpoint-iter{epoch}.pth"
+        )
+        filename = str(self.checkpoint_dir / s)
         if not (only_best and save_best):
             torch.save(state, filename)
             if self.config.writer.log_checkpoints:

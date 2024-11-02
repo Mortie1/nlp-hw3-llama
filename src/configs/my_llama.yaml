@@ -33,10 +33,11 @@ trainer:
     # resume_from: ..\lr=1e-4, add max_grad_norm\checkpoint-epoch1.pth # null or path to the checkpoint dir with *.pth and config.yaml
     # from_pretrained: ..\lr=1e-4, add max_grad_norm\checkpoint-epoch1.pth
     device: auto # device name or "auto"
-    override: True # if True, will override the previous run with the same name
+    override: False # if True, will override the previous run with the same name
     max_grad_norm: 1.0
     monitor: "min train_CrossEntropy" # "off" or "max/min metric_name", i.e. our goal is to maximize/minimize metric
-    save_period: 10000 # checkpoint each save_period iters in addition to the best iter
+    save_period: 1 # checkpoint each save_period epochs in addition to the best iter
+    iter_save_period: 10000 # checkpoint each iter_save_period iters in addition to the best iter
     early_stop: ${trainer.n_epochs} # epochs for early stopping
     save_dir: "saved"
     seed: 1
