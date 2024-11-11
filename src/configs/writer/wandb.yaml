@@ -1,7 +1,7 @@
 _target_: src.logger.WandBWriter
 project_name: "nlp-hw3-LLaMa"
 entity: null
-run_name: "revert to bs=6 and leave for night"
+run_name: "fine-tuning for interpolation"
 mode: "online"
 loss_names: ["loss"] # which losses to log (useful for multi-loss tasks, s.a. GANs)
 log_checkpoints: False # set to True if you want to log save_dir with checkpoints to W&B

@@ -586,3 +586,5 @@ class BaseTrainer:
             self.model.load_state_dict(checkpoint["state_dict"])
         else:
             self.model.load_state_dict(checkpoint)
+
+        self.model.compile()

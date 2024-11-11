@@ -82,6 +82,8 @@ class BaseDataset(Dataset):
         Returns:
             text (str): text content.
         """
+        # remove for windows
+        path = "./" + "/".join(path.split("\\")[4:])
         try:
             with open(path, "rt", encoding="utf-8") as f:
                 text = json.load(f)["text"]
